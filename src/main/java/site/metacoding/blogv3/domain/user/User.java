@@ -32,7 +32,7 @@ public class User {
     private String username;
 
     // 1234 -> SHA256(해시 알고리즘) -> AB4539GDUF3AE -> 이렇게 안하면 시큐리티 거부
-    @Column(length = 100, nullable = false)
+    @Column(length = 150, nullable = false)
     private String password;
 
     @Column(length = 60, nullable = false)

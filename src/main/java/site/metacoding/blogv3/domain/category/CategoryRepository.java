@@ -8,6 +8,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface CategoryRepository extends JpaRepository<Category, Integer> {
 
-    @Query(value = "SELECT * FROM category WHERE userId = :userId", nativeQuery = true)
+    @Query(value = "SELECT * FROM Category WHERE userId = :userId", nativeQuery = true)
     List<Category> findByUserId(@Param("userId") Integer userId);
 }
