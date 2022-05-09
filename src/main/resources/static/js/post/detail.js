@@ -1,3 +1,32 @@
+function postLikeClick(id){
+    if($(`#heart-${id}`).hasClass("my_fake_like")){
+        postUnLike(id);
+     } else {
+        postLike(id);
+     }
+}
+
+// 복잡해지니까 메서드로 나눈다.
+function postLike(id){
+    $(`#heart-${id}`).addClass("my_fake_like");
+    $(`#heart-${id}`).removeClass("my_fake_un_like");
+    $(`#heart-${id}`).removeClass("far");
+    $(`#heart-${id}`).addClass("fa-solid");
+}
+function postUnLike(id){
+    $(`#heart-${id}`).addClass("my_fake_un_like");
+    $(`#heart-${id}`).removeClass("my_fake_like");
+    $(`#heart-${id}`).removeClass("fa-solid");
+    $(`#heart-${id}`).addClass("far");
+}
+
+// 게시글 삭제, 권한체크 후 삭제 /s/api/post/postId
+$("#btn-delete").click(() => {
+    postDelete();
+});
+
+
+
 // 게시글 삭제, 권한체크 후 삭제 /s/api/post/postId
 $("#btn-delete").click(() => {
     postDelete();
@@ -18,4 +47,4 @@ let postDelete = async () => {
     } else {
         alert("삭제실패");
     }
-};
+}
