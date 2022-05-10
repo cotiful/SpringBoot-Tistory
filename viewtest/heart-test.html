@@ -42,9 +42,9 @@
             $("#h-1").click((event)=>{
                 let isLike =  $(`#h-${id}`).hasClass("my_fake_like");
                 if(isLike){
-                    postUnLike(1);
+                    postUnLike(id);
                 }else{
-                    postLike(1);
+                    postLike(id);
                 }   
             });
         }
@@ -58,6 +58,7 @@
         $(`#h-${id}`) .removeClass("far");
         $(`#h-${id}`) .addClass("fa-solid");
         }
+        
         function postUnLike(id){
             // 1. fetch
 alert("좋아요 취소")

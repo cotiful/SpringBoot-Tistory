@@ -4,6 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
+import javax.persistence.TypedQuery;
+
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import site.metacoding.blogv3.domain.category.Category;
 import site.metacoding.blogv3.domain.category.CategoryRepository;
+import site.metacoding.blogv3.domain.love.Love;
+import site.metacoding.blogv3.domain.love.LoveRepository;
 import site.metacoding.blogv3.domain.post.Post;
 import site.metacoding.blogv3.domain.post.PostRepository;
 import site.metacoding.blogv3.domain.user.User;
@@ -39,12 +46,17 @@ public class PostService {
     private final PostRepository postRepository;
     private final CategoryRepository categoryRepository;
     private final VisitRepository visitRepository;
+    private final LoveRepository loveRepository;
+    private final EntityManager em; // IOC 컨테이너에서 가져옴
 
-    @Transactional
+    @Transactional(rollbackFor = CustomApiException.class)
     public void 게시글삭제(Integer id, User principal) {
 
         // 게시글 확인.
         Post postEntity = basicFindById(id);
+
+        // 미리 필요한 얘들을 다 땡김 - Lazy Loading 미리하기
+        // Hibernate.initialize(postEntity);
 
         // 권한 체크
         if (authCheck(postEntity.getUser().getId(), principal.getId())) { // 이 부분 페이지 주인 아이디
@@ -71,6 +83,9 @@ public class PostService {
         postDetailRespDto.setPost(postEntity);
         postDetailRespDto.setPageOwner(false);
 
+        // 좋아요 확인하기(로그인한 사람이 해당 게시글을 좋아하는지)
+        postDetailRespDto.setLove(false);
+
         return postDetailRespDto;
     }
 
@@ -79,19 +94,27 @@ public class PostService {
 
         PostDetailRespDto postDetailRespDto = new PostDetailRespDto();
 
-        // 게시글 가져오기
+        // 게시글 찾기
         Post postEntity = basicFindById(id);
 
         // 권한체크
         boolean isAuth = authCheck(postEntity.getUser().getId(), principal.getId());
 
-        // 방문자수 증가하기
+        // 방문자수 증가
         visitIncrease(postEntity.getUser().getId());
 
         // 리턴값 만들기
         postDetailRespDto.setPost(postEntity);
         postDetailRespDto.setPageOwner(isAuth);
 
+        // 좋아요 확인하기(로그인한 사람이 해당 게시글을 좋아하는지)
+        // (1) 로그인한 사람의 userId와 상세보기 postId로 Love 테이블에서 select해서 있으면 true
+        Optional<Love> loveOp = loveRepository.mFindByUserIdAndPostId(principal.getId(), id);
+        if (loveOp.isPresent()) {
+            postDetailRespDto.setLove(true);
+        } else {
+            postDetailRespDto.setLove(false);
+        }
         return postDetailRespDto;
     }
 
@@ -212,3 +235,50 @@ public class PostService {
     }
 
 }
+
+//////////// 연습코드
+
+// // JPQL 1. 복잡한 쿼리 적을때(통계쿼리 같은 것), DTO로 바꾸고 싶을 때
+// public Post emTest1(Integer id) {
+// // Jpa는 기본적으로 Entity를 쓰고있다. JPQL -> Java Persistece Query Language <=>
+// // prepareStatement와 다른 점은 영속화를 시켜줌
+// em.getTransaction().begin(); // 트랜잭션 어노테이션 대신 , 트랜잭션 시작
+
+// // 쿼리를 컴파일 시점에 오류발견을 위해 QueryDSL 사용
+// String sql = null;
+// if (id == 1) {
+// sql = "SELECT * FROM post WHERE id =1";
+// } else {
+// sql = "SELECT * FROM post WHERE id =2";
+// }
+// TypedQuery<Post> query = em.createQuery(sql, Post.class);
+// Post postEntity = query.getSingleResult();
+
+// try {
+// // insert()
+
+// // update()
+
+// em.getTransaction().commit(); // insert, update가 다 끝나고 commit
+// } catch (RuntimeException e) {
+// // RuntimeException 뜰 때 rollback();, null 같은 거
+// em.getTransaction().rollback();
+// }
+
+// em.close(); // 트랜잭션 종료
+// return postEntity;
+// // repository를 타지 않는다.
+// }
+
+// // 영속화, 비영속화
+// public Love emTest2() {
+
+// Love love = new Love();
+// em.persist(love); // 영속화
+// em.detach(love); // 비영속화
+// em.merge(love); // 재영속화
+
+// em.remove(love); // 영속성 삭제
+
+// return love;// MessageConverter
+// }

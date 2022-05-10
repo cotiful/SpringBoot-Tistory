@@ -32,6 +32,18 @@ public class PostController {
     // CategoryService 사용하지 말고
     // PostService 사용하세요. 이유는 나중에 category, post글 다 같이 가지고 가야 하기 때문임!!
 
+    @PostMapping("/s/api/post/{id}/love")
+    // 누가 어떤 포스트를 좋아하는지
+    public ResponseEntity<?> love(@PathVariable Integer id, @AuthenticationPrincipal LoginUser loginUser) {
+        return null;
+    }
+
+    @DeleteMapping("/s/api/post/{id}/love")
+    // 누가 어떤 포스트를 좋아하는지
+    public ResponseEntity<?> unLove(@PathVariable Integer id, @AuthenticationPrincipal LoginUser loginUser) {
+        return null;
+    }
+
     @DeleteMapping("/s/api/post/{id}")
     public ResponseEntity<?> postDelete(@PathVariable Integer id, @AuthenticationPrincipal LoginUser loginUser) {
 
