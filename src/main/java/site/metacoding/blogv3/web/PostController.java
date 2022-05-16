@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.config.web.server.ServerHttpSecurity.HttpsRedirectSpec;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,9 +18,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import lombok.RequiredArgsConstructor;
 import site.metacoding.blogv3.config.auth.LoginUser;
 import site.metacoding.blogv3.domain.category.Category;
+import site.metacoding.blogv3.domain.love.Love;
 import site.metacoding.blogv3.domain.user.User;
 import site.metacoding.blogv3.handler.ex.CustomException;
 import site.metacoding.blogv3.service.PostService;
+import site.metacoding.blogv3.web.dto.love.LoveResponseDto;
 import site.metacoding.blogv3.web.dto.post.PostDetailRespDto;
 import site.metacoding.blogv3.web.dto.post.PostRespDto;
 import site.metacoding.blogv3.web.dto.post.PostWriteReqDto;
@@ -32,16 +35,24 @@ public class PostController {
     // CategoryService 사용하지 말고
     // PostService 사용하세요. 이유는 나중에 category, post글 다 같이 가지고 가야 하기 때문임!!
 
-    @PostMapping("/s/api/post/{id}/love")
+    @PostMapping("/s/api/post/{postId}/love")
     // 누가 어떤 포스트를 좋아하는지
-    public ResponseEntity<?> love(@PathVariable Integer id, @AuthenticationPrincipal LoginUser loginUser) {
-        return null;
+    public ResponseEntity<?> love(@PathVariable Integer postId, @AuthenticationPrincipal LoginUser loginUser) {
+        LoveResponseDto dto = postService.좋아요(postId, loginUser.getUser());
+        // 이 상태로 하면 love에 프라이머리키가 없어서 나중에 취소를 못함. 하지만 f5한 번 누르면 가능 그렇지만 f5 하기 전에는 취소가안됨
+        // body를 받지 않았기 때문에
+        return new ResponseEntity<>(dto, HttpStatus.CREATED);
     }
 
-    @DeleteMapping("/s/api/post/{id}/love")
+    // 삭제할 때는 loveId만 찾아서 삭제시켜주면됨.
+    @DeleteMapping("/s/api/post/{postId}/love/{loveId}")
     // 누가 어떤 포스트를 좋아하는지
-    public ResponseEntity<?> unLove(@PathVariable Integer id, @AuthenticationPrincipal LoginUser loginUser) {
-        return null;
+    public ResponseEntity<?> unLove(@PathVariable Integer loveId, @AuthenticationPrincipal LoginUser loginUser) {
+        // 로그인한 유저의 userId
+        // 러브에 있는 userId 를 두개 비교
+        // -> 권한 체크를 해줘야 함
+        postService.좋아요취소(loveId, loginUser.getUser());
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @DeleteMapping("/s/api/post/{id}")

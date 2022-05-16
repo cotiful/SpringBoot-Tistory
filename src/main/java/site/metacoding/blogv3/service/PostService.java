@@ -29,6 +29,8 @@ import site.metacoding.blogv3.domain.visit.VisitRepository;
 import site.metacoding.blogv3.handler.ex.CustomApiException;
 import site.metacoding.blogv3.handler.ex.CustomException;
 import site.metacoding.blogv3.util.UtilFileUpload;
+import site.metacoding.blogv3.web.dto.love.LoveResponseDto;
+import site.metacoding.blogv3.web.dto.love.LoveResponseDto.PostDto;
 import site.metacoding.blogv3.web.dto.post.PostDetailRespDto;
 import site.metacoding.blogv3.web.dto.post.PostRespDto;
 import site.metacoding.blogv3.web.dto.post.PostWriteReqDto;
@@ -49,11 +51,42 @@ public class PostService {
     private final LoveRepository loveRepository;
     private final EntityManager em; // IOC 컨테이너에서 가져옴
 
+    // return을 해줘야 값이 변경돼서 f5를 누르지 않아도 인식함
+    @Transactional
+    public LoveResponseDto 좋아요(Integer postId, User principal) {
+
+        // 숙제 Love를 Dto에 옮겨서 비영속화된 데이터를 응답하기
+        Post postEntity = postFindById(postId);
+        Love love = new Love();
+        love.setUser(principal);
+        love.setPost(postEntity);
+
+        Love loveEntity = loveRepository.save(love);
+        // 1. DTO 클래스 생성
+        // 2. 모델매퍼 함수 호출 내가 만든 DTO = 모델매퍼메서드 호출 (loveEntity, 내가 만든 DTO.class)
+        LoveResponseDto loveResponseDto = new LoveResponseDto();
+        loveResponseDto.setLoveId(loveEntity.getId());
+        PostDto postDto = loveResponseDto.new PostDto();
+        postDto.setPostId(postEntity.getId());
+        postDto.setTitle(postEntity.getTitle());
+        loveResponseDto.setPost(postDto);
+        return loveResponseDto;
+    }
+
+    @Transactional
+    public void 좋아요취소(Integer loveId, User principal) {
+
+        // 권한체크
+        // 공통된 코드이기 때문에 아래에 private 으로 만들어줬음.
+        loveFindById(loveId);
+        loveRepository.deleteById(loveId);
+    }
+
     @Transactional(rollbackFor = CustomApiException.class)
     public void 게시글삭제(Integer id, User principal) {
 
         // 게시글 확인.
-        Post postEntity = basicFindById(id);
+        Post postEntity = postFindById(id);
 
         // 미리 필요한 얘들을 다 땡김 - Lazy Loading 미리하기
         // Hibernate.initialize(postEntity);
@@ -74,7 +107,7 @@ public class PostService {
         PostDetailRespDto postDetailRespDto = new PostDetailRespDto();
 
         // 게시글 찾기
-        Post postEntity = basicFindById(id);
+        Post postEntity = postFindById(id);
 
         // 방문자수 증가
         visitIncrease(postEntity.getUser().getId());
@@ -95,7 +128,7 @@ public class PostService {
         PostDetailRespDto postDetailRespDto = new PostDetailRespDto();
 
         // 게시글 찾기
-        Post postEntity = basicFindById(id);
+        Post postEntity = postFindById(id);
 
         // 권한체크
         boolean isAuth = authCheck(postEntity.getUser().getId(), principal.getId());
@@ -195,8 +228,19 @@ public class PostService {
         return postRespDto;
     }
 
+    //
+    private Love loveFindById(Integer loveId) {
+        Optional<Love> loveOp = loveRepository.findById(loveId);
+        if (loveOp.isPresent()) {
+            Love loveEntity = loveOp.get();
+            return loveEntity;
+        } else {
+            throw new CustomApiException("해당 좋아요가 존재하지 않습니다");
+        }
+    }
+
     // 게시글 한건 찾기
-    private Post basicFindById(Integer postId) {
+    private Post postFindById(Integer postId) {
         Optional<Post> postOp = postRepository.findById(postId);
         if (postOp.isPresent()) {
             Post postEntity = postOp.get();
@@ -270,7 +314,7 @@ public class PostService {
 // // repository를 타지 않는다.
 // }
 
-// // 영속화, 비영속화
+// 영속화, 비영속화
 // public Love emTest2() {
 
 // Love love = new Love();
